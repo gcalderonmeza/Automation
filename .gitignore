@@ -3,3 +3,6 @@ networkId.h
 
 # Arduino libraries — install via Arduino IDE Library Manager
 libraries/
+
+# ESP8266 sub-projects
+Projects/
