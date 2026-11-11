@@ -4,6 +4,8 @@
 #include "MotionSensor.h"
 #include "TemperatureSensor.h"
 #include "SmokeSensor.h"
+// SETUP REQUIRED: Copy networkId.h.example to networkId.h and fill in your
+// WiFi SSID, password, and MQTT broker address before compiling.
 #include "NetworkId.h"
 #include "AlesRoom.h"
 
