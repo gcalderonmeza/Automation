@@ -1,0 +1,561 @@
+// Loading the required libraries
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <RCSwitch.h>
+#include "DHT.h"
+#include "Motion.h"
+
+// Uncomment one of the lines bellow for whatever DHT sensor type you're using!
+#define DHTTYPE DHT11 // DHT 11
+//#define DHTTYPE DHT21 // DHT 21 (AM2301)
+//#define DHTTYPE DHT22 // DHT 22 (AM2302), AM2321
+
+// Change the credentials below, so your ESP8266 connects to your router
+const char* ssid = "GoMason";
+const char* password = "ceb68637";
+
+// Change the variable to your Raspberry Pi IP address, so it connects to your MQTT broker
+const char* mqtt_server = "192.168.1.115";
+
+// Initializes the espClient
+WiFiClient espClient;
+PubSubClient client(espClient);
+RCSwitch mySwitch = RCSwitch();
+
+// Smoke Sensor
+//const int smokePin = A0;
+//const int blinkTime = 500;
+
+// DHT Sensor
+const int DHTPin = 5;
+const int dhtTime = 30000;
+
+// Initialize DHT sensor.
+DHT dht(DHTPin, DHTTYPE);
+
+// Smoke Threshold
+//const int smokeThres = 70;
+
+// Control Variables
+boolean armMotion = false;
+//boolean smokeTriggered = false;
+//boolean testMode = false;
+//boolean blinkFlag = false;
+//boolean blinkStatus = true;
+boolean motionTriggered = false;
+boolean motionFirstTimeTriggered = false;
+
+// PIR Motion Sensor
+const int motionSensor = 4;
+
+// Status LEDs
+const int motionLED = 12;
+//const int smokeLED = 13;
+
+// Buzzer
+//const int buzzerPin = 14;
+
+// Light detection
+const int lightPin = A0;
+long lastLightMeasure = 0;
+long lightThreshold = 20;
+int lightControlMode = 0; // ControlByLight, 1 = LightOn, 2 = LightOff
+bool estimatedLightStatus = false;
+
+// Timers auxiliar variables
+long now = millis();
+long lastMeasure = 0;
+//long lastSmokeCheck = 0;
+long lastMotionTriggered = 0;
+long lastBlinkCheck = 0;
+//long testModeStart = 0;
+
+// Don't change the function below. This functions connects your ESP8266 to your router
+void setup_wifi() {
+  delay(10);
+
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("");
+  Serial.print("WiFi connected - ESP IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+// This functions is executed when some device publishes a message to a topic that your ESP8266 is subscribed to
+// Change the function below to add logic to your program, so when a device publishes a message to a topic that
+// your ESP8266 is subscribed you can actually do something
+void callback(String topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  
+  Serial.println();
+
+  // Feel free to add more if statements to control more GPIOs with MQTT
+  // If a message is received on the topic home/office/esp1/desk, you check if the message is either 1 or 0. Turns the Desk outlet according to the message
+  if(topic=="home/garage/esp1/switch"){
+    //mySwitch.send("010001010001010000000011");
+    //mySwitch.send("010001010001010000001100");
+      mySwitch.send("010001010001010000110000");
+      delay(200);
+      mySwitch.send("010001010001010011000000");
+    //mySwitch.send("010001010001011100000000");
+
+    Serial.print("Switching light to ");
+    if(messageTemp == "1"){
+      Serial.println("On");
+    }
+    else if(messageTemp == "0"){
+      Serial.println("Off");
+    }
+  }
+/*
+  if(topic=="home/garage/esp1/workbench"){
+    Serial.print("Changing Workbench light to ");
+    if(messageTemp == "1"){
+      mySwitch.send("000101010101010001010101");
+      Serial.println("On");
+    }
+    else if(messageTemp == "0"){
+      mySwitch.send("000101010101010001010100");
+      Serial.println("Off");
+    }
+  }*/
+
+  /*
+  if(topic=="home/garage/esp1/smoke"){
+    Serial.print("SMOKE SENSOR STATUS CHANGE... ");
+    if (messageTemp=="Test/Reset") {
+      if (smokeTriggered) {
+        // Reset
+        smokeTriggered = false;
+        testMode = false;
+        blinkFlag = false;
+        blinkStatus = false;
+        client.publish("home/garage/esp1/smoke/notification", "NO SMOKE");
+        Serial.println("NO SMOKE");
+      }
+      else 
+      {
+        // Test
+        smokeTriggered = false;
+        testMode = true;
+        blinkFlag = true;
+        blinkStatus = true;
+        testModeStart = millis();
+        lastBlinkCheck = testModeStart;
+        client.publish("home/garage/esp1/smoke/notification", "IN TEST");
+        Serial.println("IN TEST");
+      }
+
+      blink_smoke(blinkStatus);
+    }
+  }*/
+
+  if(topic=="home/garage/esp1/motion"){
+    Serial.print("MOTION SENSOR STATUS CHANGE...");
+    report_motion_status(messageTemp);
+  }
+
+  if(topic=="home/garage/esp1/light") {
+    Serial.print("NEW MODE ARRIVED...");
+    if(messageTemp=="TurnLightOn") {
+      lightControlMode = 1;
+      client.publish("home/garage/esp1/light/status", "Armed");
+      client.publish("home/garage/esp1/light/mode", "Light on");
+      Serial.print("Light control status: LIGHT ON");
+    } else if(messageTemp=="TurnLightOff") {
+      lightControlMode = 2;
+      client.publish("home/garage/esp1/light/status", "Armed");
+      client.publish("home/garage/esp1/light/mode", "Light off");
+      Serial.print("Light control status: LIGHT OFF");
+    } else if(messageTemp=="ControlByLight") {
+      lightControlMode = 0;
+      client.publish("home/garage/esp1/light/status", "Armed");
+      client.publish("home/garage/esp1/light/mode", "Control by light");
+      Serial.print("Light control status: CONTROL BY LIGHT");
+    }
+  }
+
+  if(topic=="home/garage/esp1/light/threshold") {
+    Serial.print("NEW THRESHOLD ARRIVED...");
+    Serial.print(messageTemp);
+
+    lightThreshold = atoi(messageTemp.c_str());
+  }
+ 
+  Serial.println();
+}
+
+void report_motion_status(String messageTemp)
+{
+  if(messageTemp == "1"){
+    Serial.print("Motion Sensor Armed");
+    client.publish("home/garage/esp1/motion/status", "Armed");
+    client.publish("home/garage/esp1/motion/notification", "NO MOTION");
+    armMotion = true;
+    motionTriggered = false;
+  } else if(messageTemp == "0"){
+    Serial.print("Motion Sensor Not Armed");
+    client.publish("home/garage/esp1/motion/status", "Not Armed");
+    client.publish("home/garage/esp1/motion/notification", "NO MOTION");
+    armMotion=false;
+    motionTriggered = false;
+    digitalWrite(motionLED, LOW);
+  }
+}
+
+void report_smoke_status(boolean smokeTriggered)
+{
+  client.publish("home/garage/esp1/smoke/notification", "NOT AVAILABLE");
+  return;
+  
+  if (smokeTriggered) {
+    client.publish("home/garage/esp1/smoke/notification", "SMOKE DETECTED!!!");
+    Serial.println("SMOKE DETECTED!!!");
+  }
+  else
+  {
+    // Not in test mode
+    client.publish("home/garage/esp1/smoke/notification", "NO SMOKE");
+    Serial.println("NO SMOKE");
+  }
+}
+/*
+void blink_smoke(boolean blinkStatus)
+{
+  if (blinkStatus) {
+    digitalWrite(smokeLED, HIGH);
+    tone(buzzerPin, 3400);
+  }
+  else
+  {
+    digitalWrite(smokeLED, LOW);
+    noTone(buzzerPin);
+  }
+}
+*/
+
+boolean reconnectedFlag = false;
+
+// This functions reconnects your ESP8266 to your MQTT broker
+// Change the function below if you want to subscribe to more topics with your ESP8266
+void check_connection() {
+    // Loop until we're reconnected
+  if (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("GarageESP8266Client")) {
+      Serial.println("connected");
+      reconnectedFlag = true;
+
+      // Publish "after reconnection states"
+      // report_smoke_status(smokeTriggered);
+      client.publish("home/garage/esp1/motion/status", armMotion ? "Armed" : "Not Armed");
+      client.publish("home/garage/esp1/motion/notification", "NO MOTION");
+
+      static char lightValTemp[6];
+      //dtostrf(m, 6, 0, lightValTemp);
+      itoa(lightThreshold, lightValTemp, 10);
+      
+      client.publish("home/garage/esp1/light/currentThreshold", lightValTemp);
+      
+      // Subscribe or resubscribe to topics
+      client.subscribe("home/garage/esp1/switch");
+      //client.subscribe("home/garage/esp1/workbench");
+      client.subscribe("home/garage/esp1/smoke");
+      client.subscribe("home/garage/esp1/motion");
+      client.subscribe("home/garage/esp1/light");
+      client.subscribe("home/garage/esp1/light/threshold");
+      delay(100);
+    } else {
+      Serial.print("Error: failed, rc=");
+      Serial.println(client.state());
+      // Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      // delay(5000);
+    }
+  }
+  else
+  {
+    reconnectedFlag = false;
+  }
+}
+
+// Checks motion
+// Do not publish anything to MQTT here, it breaks the whole connection
+void detectsMovement() {
+  if (armMotion) {
+    if (!motionTriggered) {
+      motionFirstTimeTriggered = true;
+    }
+    
+    motionTriggered = true;
+  }
+}
+
+// The setup function sets your ESP GPIOs to Outputs, starts the serial communication at a baud rate of 115200
+// Sets your mqtt broker and sets the callback function
+// The callback function is what receives messages and actually controls the LEDs
+void setup() {
+  //pinMode(smokeLED, OUTPUT);
+  pinMode(motionLED, OUTPUT);
+  //pinMode(buzzerPin, OUTPUT);
+  pinMode(lightPin, INPUT);
+
+  //pinMode(smokePin, INPUT);
+  attachInterrupt(digitalPinToInterrupt(motionSensor), detectsMovement, RISING);
+  
+  dht.begin();
+  Serial.begin(115200);
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+
+  //Setup the radio transmitter
+  mySwitch.enableTransmit(16);
+  mySwitch.setPulseLength(160);
+  mySwitch.setProtocol(7);
+  //mySwitch.setRepeatTransmit(15);
+}
+
+void processHumedityAndTemperature()
+{
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+  // float f = dht.readTemperature(true);
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t)) { //|| isnan(f)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+  
+  // Computes temperature values in Celsius
+  float hic = dht.computeHeatIndex(t, h, false);
+  static char temperatureTemp[6];
+  dtostrf(hic, 6, 2, temperatureTemp);
+
+  // Uncomment to compute temperature values in Fahrenheit
+  //float hif = dht.computeHeatIndex(f, h);
+  //static char temperatureTempF[6];
+  //dtostrf(hif, 6, 2, temperatureTempF);
+  static char humidityTemp[6];
+  dtostrf(h, 6, 2, humidityTemp);
+
+  // Publishes Temperature and Humidity values
+  client.publish("home/garage/esp1/temperature", temperatureTemp);
+  client.publish("home/garage/esp1/humedity", humidityTemp);
+  Serial.print("Humidity: ");
+  Serial.print(h);
+  Serial.print(" %\t Temperature: ");
+  Serial.print(t);
+  //Serial.print(" *F ");
+  //Serial.print(f);
+  Serial.print(" *C\t Heat index: ");
+  Serial.print(hic);
+  Serial.println(" *C ");
+  //Serial.print(hif);
+  //Serial.println(" *F");
+}
+
+/*
+void check_smoke()
+{
+  long now = millis();
+  
+  // Checks smoke
+  if (testMode) {
+    // Timer reached? (5 sec in test mode)
+    if (now - testModeStart > 5000)
+    {
+      // Stop blink and buzz
+      blinkFlag = false;
+      blinkStatus = false;
+      blink_smoke(blinkStatus);
+      testMode = false;
+    }
+    else if (now - lastBlinkCheck > blinkTime)
+    {
+      // Blink every second
+      blinkStatus = !blinkStatus;
+      blink_smoke(blinkStatus);
+      lastBlinkCheck = now;
+    }
+  }
+  else if (now - lastSmokeCheck > 2000) {
+    // Read smoke after 2 secs
+    lastSmokeCheck = now;
+    int smokeValue = analogRead(smokePin);
+    Serial.print("Smoke value: ");
+    Serial.println(smokeValue);
+
+    smokeTriggered = smokeValue > smokeThres;
+    if (smokeTriggered) {
+      // Start blinking if not already doing it, if blinking already flip if the timer has been reached
+      if (blinkFlag)
+      {
+        if (now - lastBlinkCheck > blinkTime)
+        {
+          blinkStatus = !blinkStatus;
+          blink_smoke(blinkStatus);
+          lastBlinkCheck = now;
+        }
+      }
+      else
+      {
+        blinkFlag = true;
+        blinkStatus = true;
+        blink_smoke(blinkStatus);
+        lastBlinkCheck = now;
+      }
+    }
+    else
+    {
+      blinkFlag = false;
+      blinkStatus = false;
+      blink_smoke(blinkStatus);
+    }
+
+    report_smoke_status(smokeTriggered);
+  }
+} */
+
+// Basically the loop ensures that you ESP is connected to your broker and performs all the functions of the broker
+void loop() {
+  // Connect/reconnect to the broker
+  check_connection();
+
+  client.loop();
+
+  // Process smoke detection
+  //check_smoke();
+  report_smoke_status(false);
+  
+  // Process temperature and humedity
+  now = millis();
+  if (now - lastMeasure > dhtTime) {
+    lastMeasure = now;
+    processHumedityAndTemperature();
+  }
+
+  // Process motion detection
+  now = millis();
+  if (armMotion && motionTriggered) {
+    noInterrupts();
+    if (motionFirstTimeTriggered) {
+      Serial.println("MOTION DETECTED!!!");
+      lastMotionTriggered = now;
+      client.publish("home/garage/esp1/motion/notification", "MOTION DETECTED");
+      motionFirstTimeTriggered = false;
+      digitalWrite(motionLED, HIGH);
+    } else if (now - lastMotionTriggered > 500) {
+        motionTriggered = false;
+        client.publish("home/garage/esp1/motion/notification", "NO MOTION");
+        digitalWrite(motionLED, LOW);
+    }
+    interrupts();
+  }
+
+  if (now - lastLightMeasure > 500) {
+    lastLightMeasure = now;
+    processLightMeasurement();
+  }
+
+  delay(100);
+}
+
+void processLightMeasurement()
+{
+  int light = analogRead(lightPin);
+  Serial.print("Temp read: ");
+  Serial.print(light);
+  Serial.print("  Normalized: ");
+
+  int m = map(light, 0, 1023, 0, 100);
+
+  Serial.println(m);
+  static char lightValTemp[6];
+  //dtostrf(m, 6, 0, lightValTemp);
+  itoa(m, lightValTemp, 10);
+  client.publish("home/garage/esp1/light/value", lightValTemp);
+
+  switch(lightControlMode)
+  {
+    case 0: 
+      if(m <= lightThreshold) {
+        if(armMotion) {
+          if(lastMotionTriggered){
+            Serial.println("Some one moved, turn on lights!");
+          } else {
+            Serial.println("Keep light off, no one is moving");
+          }
+        } else {
+          Serial.println("It is too dark, turning light on!");
+        }
+      } else if(m > lightThreshold * 1.1) {
+        toggleSwitch(3);
+        delay(200);
+        toggleSwitch(4);
+        Serial.println("It is not dark at all, turning light off!");
+      }
+      break;
+    case 1:
+      if(!estimatedLightStatus)
+      {
+        toggleSwitch(3);
+        delay(200);
+        toggleSwitch(4);
+        Serial.println("Turning light on!");
+        estimatedLightStatus = true;
+      }
+      break;
+    case 2:
+      if(estimatedLightStatus)
+      {
+        toggleSwitch(3);
+        delay(200);
+        toggleSwitch(4);
+        Serial.println("Turning light off!");
+        estimatedLightStatus = false;
+      }
+      break;
+  }
+}
+
+void toggleSwitch(int switchNumber) 
+{
+  switch(switchNumber)
+  {
+    case 1:
+      mySwitch.send("010001010001010000000011");
+      break;
+    case 2:
+      mySwitch.send("010001010001010000001100");
+      break;
+    case 3:
+      mySwitch.send("010001010001010000110000");
+      break;
+    case 4:
+      mySwitch.send("010001010001010011000000");
+      break;
+    case 5:
+      mySwitch.send("010001010001011100000000");
+      break;
+  }
+}
