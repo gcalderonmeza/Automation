@@ -1,0 +1,11 @@
+#ifndef network_id_h
+#define network_id_h
+
+// Change the credentials below, so your ESP8266 connects to your router
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// Change the variable to your Raspberry Pi IP address, so it connects to your MQTT broker
+const char* mqtt_server = "YOUR_MQTT_BROKER_IP_OR_HOSTNAME";
+
+#endif
