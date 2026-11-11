@@ -38,6 +38,7 @@ libraries/             # Required Arduino libraries (see below)
 | DHT sensor library for ESPx | 1.19    | DHT11/DHT22 optimized for ESP8266/ESP32          |
 | Adafruit Unified Sensor     | 1.1.15  | Dependency for DHT sensor library                |
 | PubSubClient                | 2.8     | MQTT client for WiFi messaging                   |
+| rc-switch                   | 2.6.4   | 433 MHz RF transmit/receive (wireless switches)  |
 
 ---
 
