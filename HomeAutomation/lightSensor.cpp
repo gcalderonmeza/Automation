@@ -1,5 +1,4 @@
 // Loading the required libraries
-#include <PubSubClient.h>
 #include "lightSensor.h"
 
 LightSensor::LightSensor(int lightSensorPin, int threshold, String topicPrefix)

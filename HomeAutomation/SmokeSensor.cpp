@@ -1,18 +1,16 @@
 // Loading the required libraries
-#include <ESP8266WiFi.h>
-#include <PubSubClient.h>
 #include "SmokeSensor.h"
 
-Smoke::Smoke(int smokePin, int smokeLEDPin, int buzzerPin)
+Smoke::Smoke(uint8_t smokePin, uint8_t smokeLEDPin, uint8_t buzzerPin)
 {
   // Smoke data input (A/D converter input)
-  this->smokePin = smokePin < 0 ? A0 : smokePin;
+  this->smokePin = smokePin;
   
   // Status LEDs (output)
-  this->smokeLEDPin = smokeLEDPin < 0 ? 13 : smokeLEDPin;
+  this->smokeLEDPin = smokeLEDPin;
 
   // Buzzer pin (output)
-  this->buzzerPin = buzzerPin < 0 ? 14 : buzzerPin;
+  this->buzzerPin = buzzerPin;
 
   // Smoke Threshold
   this->smokeThres = 70;
@@ -35,14 +33,14 @@ Smoke::Smoke(int smokePin, int smokeLEDPin, int buzzerPin)
   this->testModeStart = 0;
 }
 
-void Smoke::setBlinkTimeInMs(int blinkTimeInMs)
+void Smoke::setBlinkTimeInMs(uint16_t blinkTimeInMs)
 {
-  this->blinkTime = blinkTimeInMs < 0 ? 500 : blinkTimeInMs;
+  this->blinkTime = blinkTimeInMs;
 }
 
-void Smoke::setSmokeThreshold(int smokeThreshold)
+void Smoke::setSmokeThreshold(uint8_t smokeThreshold)
 {
-  this->smokeThres = smokeThreshold < 0 ? 70 : smokeThreshold;
+  this->smokeThres = smokeThreshold;
 }
 
 void Smoke::startTestMode()
@@ -53,7 +51,7 @@ void Smoke::startTestMode()
 void Smoke::processMessage(PubSubClient &client, String topic, String messageTemp)
 {
   if(topic=="home/garage/esp1/smoke"){
-    Serial.print("SMOKE SENSOR STATUS CHANGE... ");
+    Serial.print(F("SMOKE SENSOR STATUS CHANGE... "));
     if (messageTemp=="Test/Reset") {
       if (smokeTriggered) {
         // Reset
@@ -62,7 +60,7 @@ void Smoke::processMessage(PubSubClient &client, String topic, String messageTem
         blinkFlag = false;
         blinkStatus = false;
         client.publish("home/garage/esp1/smoke/notification", "NO SMOKE");
-        Serial.println("NO SMOKE");
+        Serial.println(F("NO SMOKE"));
       }
       else 
       {
@@ -74,7 +72,7 @@ void Smoke::processMessage(PubSubClient &client, String topic, String messageTem
         testModeStart = millis();
         lastBlinkCheck = testModeStart;
         client.publish("home/garage/esp1/smoke/notification", "IN TEST");
-        Serial.println("IN TEST");
+        Serial.println(F("IN TEST"));
       }
 
       this->blink(blinkStatus);
@@ -92,13 +90,13 @@ void Smoke::reportStatus(PubSubClient *client, boolean smokeTriggered)
   
   if (smokeTriggered) {
     client->publish("home/garage/esp1/smoke/notification", "SMOKE DETECTED!!!");
-    Serial.println("SMOKE DETECTED!!!");
+    Serial.println(F("SMOKE DETECTED!!!"));
   }
   else
   {
     // Not in test mode
     client->publish("home/garage/esp1/smoke/notification", "NO SMOKE");
-    Serial.println("NO SMOKE");
+    Serial.println(F("NO SMOKE"));
   }  
 }
 
@@ -154,7 +152,7 @@ void Smoke::check(PubSubClient* client)
     // Read smoke after 2 secs
     lastSmokeCheck = now;
     int smokeValue = analogRead(smokePin);
-    Serial.print("Smoke value: ");
+    Serial.print(F("Smoke value: "));
     Serial.println(smokeValue);
 
     smokeTriggered = smokeValue > smokeThres;

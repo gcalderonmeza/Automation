@@ -1,6 +1,8 @@
 #ifndef _LIGHT_SENSOR_H_
 #define _LIGHT_SENSOR_H_
 
+#include <PubSubClient.h>
+
 class LightSensor {
   public:
     LightSensor(int lightSensorPin, int threshold, String topicPrefix);

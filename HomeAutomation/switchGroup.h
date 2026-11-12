@@ -3,28 +3,26 @@
 
 // Loading the required libraries
 #include <RCSwitch.h>
-
-const int SwitchPin = 16;
-const int Protocol = 1;
+#include <PubSubClient.h>
 
 class SwitchGroup {
   public:
-    SwitchGroup(int switchPin, int pulseWidth, int protocol, String topicPrefix);
+    SwitchGroup(uint8_t switchPin, int pulseWidth, uint8_t protocol, String topicPrefix);
 
-    void setup(char** onMessages, char** offMessages, int numSwitches);
+    void setup(char** onMessages, char** offMessages, uint8_t numSwitches);
     void subscribe(PubSubClient& client);
     void processMessage(PubSubClient& client, String topic, String messageTemp, bool switchesToToggle[]);
-    void turnOnSwitch(int switchNumber);
-    void turnOffSwitch(int switchNumber);
-    bool getSwitchStatus(int switchNumber);
+    void turnOnSwitch(uint8_t switchNumber);
+    void turnOffSwitch(uint8_t switchNumber);
+    bool getSwitchStatus(uint8_t switchNumber);
     
   private:
     RCSwitch mySwitch;
 
     //Setup the radio transmitter
-    int switchPin;
+    uint8_t switchPin;
     int pulseWidth;
-    int protocol;
+    uint8_t protocol;
 
     // Topic variables
     String baseTopic;
@@ -36,7 +34,7 @@ class SwitchGroup {
 
     bool* switchesToToggle;
 
-    void toggleSwitch(int switchNumber);
+    void toggleSwitch(uint8_t switchNumber);
 };
 
 #endif

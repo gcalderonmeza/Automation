@@ -6,7 +6,7 @@
 
 class Motion {
   public:
-    Motion(int motionPin, int motionLEDPin, String topicPrefix);
+    Motion(uint8_t motionPin, uint8_t motionLEDPin, String topicPrefix);
 
     void processMessage(PubSubClient& client, String topic, String messageTemp);
     void changeStatus(PubSubClient& client, String messageTemp);

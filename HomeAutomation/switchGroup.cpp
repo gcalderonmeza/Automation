@@ -1,5 +1,4 @@
 // Loading the required libraries
-#include <PubSubClient.h>
 #include "SwitchGroup.h"
 
 /*
@@ -10,18 +9,18 @@
   mySwitch.send("010001010001011100000000");
 */
 
-SwitchGroup::SwitchGroup(int switchPin, int pulseWidth, int protocol, String topicPrefix)
+SwitchGroup::SwitchGroup(uint8_t switchPin, int pulseWidth, uint8_t protocol, String topicPrefix)
 {
   mySwitch = RCSwitch();
-  this->switchPin = switchPin < 0 ? SwitchPin : switchPin;
+  this->switchPin = switchPin;
   this->pulseWidth = pulseWidth;
-  this->protocol = protocol < 0 ? Protocol : protocol;
+  this->protocol = protocol;
 
   // Topics
   baseTopic = topicPrefix + "/switch";
 }
 
-void SwitchGroup::setup(char** onMessages, char** offMessages, int numSwitches)
+void SwitchGroup::setup(char** onMessages, char** offMessages, uint8_t numSwitches)
 {
   this->numSwitches = numSwitches;
 
@@ -40,7 +39,7 @@ void SwitchGroup::setup(char** onMessages, char** offMessages, int numSwitches)
   Serial.println(numSwitches);
 
   switchStatus = new bool[numSwitches];
-  for(int i=0;i<numSwitches;i++)
+  for(uint8_t i=0;i<numSwitches;i++)
   {
     Serial.print("On mesage[");
     Serial.print(i);
@@ -59,7 +58,7 @@ void SwitchGroup::setup(char** onMessages, char** offMessages, int numSwitches)
 void SwitchGroup::processMessage(PubSubClient& client, String topic, String messageTemp, bool switchesToToggle[]) {
   if(topic==baseTopic.c_str()){
     bool lightsToggled = false;
-    for(int i=0;i<numSwitches;i++)
+    for(uint8_t i=0;i<numSwitches;i++)
     {
       if(this->switchesToToggle[i])
       {
@@ -90,7 +89,7 @@ void SwitchGroup::subscribe(PubSubClient& client) {
   client.subscribe(baseTopic.c_str());
 }
 
-void SwitchGroup::toggleSwitch(int switchNumber) 
+void SwitchGroup::toggleSwitch(uint8_t switchNumber) 
 {
   if(switchNumber >= 1 && switchNumber <= numSwitches)
   {
@@ -103,7 +102,7 @@ void SwitchGroup::toggleSwitch(int switchNumber)
   }
 }
 
-void SwitchGroup::turnOnSwitch(int switchNumber) 
+void SwitchGroup::turnOnSwitch(uint8_t switchNumber) 
 {
   if(switchNumber >= 1 && switchNumber <= numSwitches)
   {
@@ -113,7 +112,7 @@ void SwitchGroup::turnOnSwitch(int switchNumber)
   }
 }
 
-void SwitchGroup::turnOffSwitch(int switchNumber) 
+void SwitchGroup::turnOffSwitch(uint8_t switchNumber) 
 {
   if(switchNumber >= 1 && switchNumber <= numSwitches)
   {
@@ -123,7 +122,7 @@ void SwitchGroup::turnOffSwitch(int switchNumber)
   }
 }
 
-bool SwitchGroup::getSwitchStatus(int switchNumber)
+bool SwitchGroup::getSwitchStatus(uint8_t switchNumber)
 {
   if(switchNumber >= 1 && switchNumber <= numSwitches)
   {

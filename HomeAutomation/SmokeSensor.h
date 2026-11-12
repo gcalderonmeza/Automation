@@ -2,15 +2,14 @@
 #define _Smoke_h
 
 // Loading the required libraries
-#include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
 class Smoke {
   public:
-    Smoke(int smokePin, int smokeLEDPin, int buzzerPin);
+    Smoke(uint8_t smokePin, uint8_t smokeLEDPin, uint8_t buzzerPin);
 
-    void setBlinkTimeInMs(int blinkTimeInMs);
-    void setSmokeThreshold(int smokeThreshold);
+    void setBlinkTimeInMs(uint16_t blinkTimeInMs);
+    void setSmokeThreshold(uint8_t smokeThreshold);
 
     void startTestMode();
     void processMessage(PubSubClient& client, String topic, String messageTemp);
@@ -23,11 +22,11 @@ class Smoke {
 
   private:
     // Smoke Sensor
-    int smokePin;
-    int blinkTime;
+    uint8_t smokePin;
+    uint16_t blinkTime;
 
     // Smoke Threshold
-    int smokeThres;
+    uint8_t smokeThres;
 
     // Control Variables
     boolean smokeTriggered;
@@ -36,10 +35,10 @@ class Smoke {
     boolean blinkStatus;
 
     // Status LEDs
-    int smokeLEDPin;
+    uint8_t smokeLEDPin;
 
     // Buzzer
-    int buzzerPin;
+    uint8_t buzzerPin;
 
     // Timers auxiliar variables
     long lastMeasure;
