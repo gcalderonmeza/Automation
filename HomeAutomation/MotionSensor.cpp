@@ -1,18 +1,17 @@
 // Loading the required libraries
-#include <PubSubClient.h>
 #include "MotionSensor.h"
 
-Motion::Motion(int motionPin, int motionLEDPin, String topicPrefix)
+Motion::Motion(uint8_t motionPin, uint8_t motionLEDPin, String topicPrefix)
 {
   armMotion = false;
   motionTriggered = false;
   motionFirstTimeTriggered = false;
 
   // PIR Motion Sensor
-  motionSensor = motionPin < 0 ? 4 : motionPin;
+  motionSensor = motionPin;
 
   // Status LEDs
-  this->motionLEDPin = motionLEDPin < 0 ? 12 : motionLEDPin;
+  this->motionLEDPin = motionLEDPin;
 
   // Timers auxiliar variables
   lastMeasure = 0;
@@ -20,9 +19,9 @@ Motion::Motion(int motionPin, int motionLEDPin, String topicPrefix)
   lastBlinkCheck = 0;
 
   // Topics
-  baseTopic = topicPrefix + "/motion";
-  notificationTopic = baseTopic + "/notification";
-  statusTopic = baseTopic + "/status";
+  baseTopic = topicPrefix + F("/motion");
+  notificationTopic = baseTopic + F("/notification");
+  statusTopic = baseTopic + F("/status");
 }
 
 void Motion::processMessage(PubSubClient& client, String topic, String messageTemp) {
@@ -33,7 +32,7 @@ void Motion::processMessage(PubSubClient& client, String topic, String messageTe
 
 void Motion::changeStatus(PubSubClient& client, String messageTemp)
 {
-  Serial.print("MOTION SENSOR STATUS CHANGE...");
+  Serial.print(F("MOTION SENSOR STATUS CHANGE..."));
   if(messageTemp == "1"){
     armMotion = true;
   } else if(messageTemp == "0"){
@@ -48,7 +47,7 @@ void Motion::changeStatus(PubSubClient& client, String messageTemp)
 void Motion::reportStatus(PubSubClient& client)
 {
   const char* statusLabel = armMotion ? "Armed" : "Not Armed";
-  Serial.print("Motion Sensor ");
+  Serial.print(F("Motion Sensor "));
   Serial.println(statusLabel);
   client.publish(statusTopic.c_str(), statusLabel);
   client.publish(notificationTopic.c_str(), motionTriggered ? "MOTION DETECTED" : "NO MOTION");
@@ -95,7 +94,7 @@ void Motion::loop(PubSubClient& client) {
   if (armMotion && motionTriggered) {
     noInterrupts();
     if (motionFirstTimeTriggered) {
-      Serial.println("MOTION DETECTED!!!");
+      Serial.println(F("MOTION DETECTED!!!"));
       lastMotionTriggered = now;
       client.publish(notificationTopic.c_str(), "MOTION DETECTED");
       motionFirstTimeTriggered = false;

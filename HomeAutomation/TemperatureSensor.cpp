@@ -1,17 +1,16 @@
 // Loading the required libraries
-#include <PubSubClient.h>
 #include "TemperatureSensor.h"
 
-Temperature::Temperature(int dhtPin, int dhtType, int dhtTime, String topicPrefix)
+Temperature::Temperature(uint8_t dhtPin, uint8_t dhtType, uint16_t dhtTime, String topicPrefix)
 {
   // Copying the object to the heap
-  this->dht = new DHT((dhtPin < 0) ? DHTPin : dhtPin, (dhtType < 0) ? DHTTYPE : dhtType);
-  this->dhtTime = (dhtTime < 0) ? DHTTime : dhtTime;
+  this->dht = new DHT(dhtPin, dhtType);
+  this->dhtTime = dhtTime;
 
   // Topics
   this->baseTopic = topicPrefix;
-  this->temperatureTopic = this->baseTopic + "/temperature";
-  this->humedityTopic = this->baseTopic + "/humedity";
+  this->temperatureTopic = this->baseTopic + F("/temperature");
+  this->humedityTopic = this->baseTopic + F("/humedity");
 
   this->lastTemperatureValue = -10000;
   this->lastHumedityValue = -100;
@@ -55,9 +54,9 @@ void Temperature::process(PubSubClient& client)
   float f = this->dht->readTemperature(true);
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) || isnan(f)) {
-  	if (isnan(h)) Serial.println("Failed to read humedity from DHT sensor!");
-  	if (isnan(t)) Serial.println("Failed to read temp (C) from DHT sensor!");
-  	if (isnan(f)) Serial.println("Failed to read temp (F) from DHT sensor!");
+  	if (isnan(h)) Serial.println(F("Failed to read humedity from DHT sensor!"));
+  	if (isnan(t)) Serial.println(F("Failed to read temp (C) from DHT sensor!"));
+  	if (isnan(f)) Serial.println(F("Failed to read temp (F) from DHT sensor!"));
 	
   	return;
   } 
@@ -86,15 +85,15 @@ void Temperature::process(PubSubClient& client)
     client.publish(this->humedityTopic.c_str(), humidityTemp);
   }
   
-  Serial.print("Humidity: ");
+  Serial.print(F("Humidity: "));
   Serial.print(h);
-  Serial.print(" %\t Temperature: ");
+  Serial.print(F(" %\t Temperature: "));
   Serial.print(t);
   //Serial.print(" *F ");
   //Serial.print(f);
-  Serial.print(" *C\t Heat index: ");
+  Serial.print(F(" *C\t Heat index: "));
   Serial.print(hic);
-  Serial.println(" *C ");
+  Serial.println(F(" *C "));
   //Serial.print(hif);
   //Serial.println(" *F");
 }
