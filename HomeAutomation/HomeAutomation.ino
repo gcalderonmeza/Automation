@@ -23,7 +23,7 @@
   #define TEMPERATURE_SENSOR_PIN 5  // D1
   #define MOTION_SENSOR_PIN      4  // D2
   #define MOTION_LED_PIN        12  // D6
-  #define SMAKE_SENSOR_PIN      A0  // 17?
+  #define SMOKE_SENSOR_PIN      A0  // 17?
   #define SMOKE_LED_PIN         13  // D7
   #define SMOKE_BUZZER_PIN      14  // D5
   #define SWITCH_GROUP_PIN      16  // D0
@@ -31,7 +31,7 @@
   #define TEMPERATURE_SENSOR_PIN 6  // D5
   #define MOTION_SENSOR_PIN      5  // D4
   #define MOTION_LED_PIN         8  // D9
-  #define SMAKE_SENSOR_PIN       1  // D1
+  #define SMOKE_SENSOR_PIN       2  // D1
   #define SMOKE_LED_PIN          9  // D10
   #define SMOKE_BUZZER_PIN       7  // D8
   #define SWITCH_GROUP_PIN       1  // D0
@@ -187,7 +187,7 @@ void setup() {
   pinMode(SMOKE_LED_PIN, OUTPUT);
   pinMode(SMOKE_BUZZER_PIN, OUTPUT);
 
-  pinMode(SMAKE_SENSOR_PIN, INPUT);
+  pinMode(SMOKE_SENSOR_PIN, INPUT);
   
   Serial.begin(115200);
   setup_wifi();
@@ -268,7 +268,7 @@ void check_smoke()
   else if (now - lastSmokeCheck > 2000) {
     // Read smoke after 2 secs
     lastSmokeCheck = now;
-    int smokeValue = analogRead(SMAKE_SENSOR_PIN);
+    int smokeValue = analogRead(SMOKE_SENSOR_PIN);
     Serial.print(F("Smoke value: "));
     Serial.println(smokeValue);
 
