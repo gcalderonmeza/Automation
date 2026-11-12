@@ -20,21 +20,21 @@
 #include "AlesRoom.h"
 
 #if defined(ESP8266)
-  #define TEMPERATURE_SENSOR_PIN 5  // D1
-  #define MOTION_SENSOR_PIN      4  // D2
-  #define MOTION_LED_PIN        12  // D6
-  #define SMOKE_SENSOR_PIN      A0  // 17?
-  #define SMOKE_LED_PIN         13  // D7
-  #define SMOKE_BUZZER_PIN      14  // D5
-  #define SWITCH_GROUP_PIN      16  // D0
+  #define TEMPERATURE_SENSOR_PIN D1  // GPIO5
+  #define MOTION_SENSOR_PIN      D2  // GPIO4
+  #define MOTION_LED_PIN         D6  // GPIO12
+  #define SMOKE_SENSOR_PIN       A0
+  #define SMOKE_LED_PIN          D7  // GPIO13
+  #define SMOKE_BUZZER_PIN       D5  // GPIO14
+  #define SWITCH_GROUP_PIN       D0  // GPIO16
 #elif defined(ARDUINO_XIAO_ESP32S3)
-  #define TEMPERATURE_SENSOR_PIN 6  // D5
-  #define MOTION_SENSOR_PIN      5  // D4
-  #define MOTION_LED_PIN         8  // D9
-  #define SMOKE_SENSOR_PIN       2  // D1
-  #define SMOKE_LED_PIN          9  // D10
-  #define SMOKE_BUZZER_PIN       7  // D8
-  #define SWITCH_GROUP_PIN       1  // D0
+  #define TEMPERATURE_SENSOR_PIN D5  // GPIO6 aka A5
+  #define MOTION_SENSOR_PIN      D4  // GPIO5 aka A4
+  #define MOTION_LED_PIN         D9  // GPIO8
+  #define SMOKE_SENSOR_PIN       A1  // GPIO2 aka D1
+  #define SMOKE_LED_PIN          D10 // GPIO9
+  #define SMOKE_BUZZER_PIN       D8  // GPIO7
+  #define SWITCH_GROUP_PIN       D0  // GPIO1 aka A0
 #else
   #error "Unsupported architecture — add pin definitions for your board"
 #endif
