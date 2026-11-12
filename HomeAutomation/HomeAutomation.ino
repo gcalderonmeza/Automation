@@ -49,20 +49,8 @@ Temperature dht(TEMPERATURE_SENSOR_PIN, DHTTYPE, DHTTime, topicPrefix);
 // Motion sensor: sensor read pin, LED pin
 Motion motion(MOTION_SENSOR_PIN, MOTION_LED_PIN, topicPrefix);
 
-// Smoke Sensor
-const int blinkTime = 500;
-const int smokeThres = 70;
-boolean smokeTriggered = false;
-boolean testMode = false;
-boolean blinkFlag = false;
-boolean blinkStatus = true;
-
-// Timers auxiliar variables
-//long lastMeasure = 0;
-long lastBlinkCheck = 0;
-
-long lastSmokeCheck = 0;
-long testModeStart = 0;
+// Smoke sensor: sensor pin, LED pin, buzzer pin
+Smoke smoke(SMOKE_SENSOR_PIN, SMOKE_LED_PIN, SMOKE_BUZZER_PIN, topicPrefix);
 
 // Don't change the function below. This functions connects your ESP8266 to your router
 void setup_wifi() {
@@ -108,37 +96,8 @@ void callback(String topic, byte* message, unsigned int length) {
   Serial.println();
 
   motion.processMessage(client, topic, messageTemp);
+  smoke.processMessage(client, topic, messageTemp);
 
-  // Feel free to add more if statements to control more GPIOs with MQTT
-  if(topic=="home/alesroom/esp1/smoke"){
-    Serial.print(F("SMOKE SENSOR STATUS CHANGE... "));
-    if (messageTemp=="Test/Reset") {
-      if (smokeTriggered) {
-        // Reset
-        smokeTriggered = false;
-        testMode = false;
-        blinkFlag = false;
-        blinkStatus = false;
-        client.publish("home/alesroom/esp1/smoke/notification", "NO SMOKE");
-        Serial.println(F("NO SMOKE"));
-      }
-      else 
-      {
-        // Test
-        smokeTriggered = false;
-        testMode = true;
-        blinkFlag = true;
-        blinkStatus = true;
-        testModeStart = millis();
-        lastBlinkCheck = testModeStart;
-        client.publish("home/alesroom/esp1/smoke/notification", "IN TEST");
-        Serial.println(F("IN TEST"));
-      }
-
-      blink_smoke(blinkStatus);
-    }
-  }
-  
   Serial.println();
 }
 
@@ -157,11 +116,11 @@ void check_connection() {
 
       // Publish "after reconnection states"
       motion.reportStatus(client);
-      
-      // Subscribe or resubscribe to topics
-      client.subscribe("home/alesroom/esp1/smoke");
+      smoke.reportStatus(client);
 
+      // Subscribe or resubscribe to topics
       motion.subscribe(client);
+      smoke.subscribe(client);
       delay(100);
     } else {
       Serial.print(F("Error: failed, rc="));
@@ -183,11 +142,7 @@ void check_connection() {
 void setup() {
   motion.setup();
   dht.setup();
-  
-  pinMode(SMOKE_LED_PIN, OUTPUT);
-  pinMode(SMOKE_BUZZER_PIN, OUTPUT);
-
-  pinMode(SMOKE_SENSOR_PIN, INPUT);
+  smoke.setup();
   
   Serial.begin(115200);
   setup_wifi();
@@ -210,95 +165,8 @@ void loop() {
   motion.loop(client);
 
   // Process smoke detection
-  check_smoke();
+  smoke.loop(client);
 
   delay(100);
 }
 
-void report_smoke_status(boolean smokeTriggered)
-{
-  if (smokeTriggered) {
-    client.publish("home/alesroom/esp1/smoke/notification", "SMOKE DETECTED!!!");
-    Serial.println(F("SMOKE DETECTED!!!"));
-  }
-  else
-  {
-    // Not in test mode
-    client.publish("home/alesroom/esp1/smoke/notification", "NO SMOKE");
-    Serial.println(F("NO SMOKE"));
-  }
-}
-
-void blink_smoke(boolean blinkStatus)
-{
-  if (blinkStatus) {
-    digitalWrite(SMOKE_LED_PIN, HIGH);
-    tone(SMOKE_BUZZER_PIN, 3400);
-  }
-  else
-  {
-    digitalWrite(SMOKE_LED_PIN, LOW);
-    noTone(SMOKE_BUZZER_PIN);
-  }
-}
-
-void check_smoke()
-{
-  long now = millis();
-  
-  // Checks smoke
-  if (testMode) {
-    // Timer reached? (5 sec in test mode)
-    if (now - testModeStart > 5000)
-    {
-      // Stop blink and buzz
-      blinkFlag = false;
-      blinkStatus = false;
-      blink_smoke(blinkStatus);
-      testMode = false;
-    }
-    else if (now - lastBlinkCheck > blinkTime)
-    {
-      // Blink every second
-      blinkStatus = !blinkStatus;
-      blink_smoke(blinkStatus);
-      lastBlinkCheck = now;
-    }
-  }
-  else if (now - lastSmokeCheck > 2000) {
-    // Read smoke after 2 secs
-    lastSmokeCheck = now;
-    int smokeValue = analogRead(SMOKE_SENSOR_PIN);
-    Serial.print(F("Smoke value: "));
-    Serial.println(smokeValue);
-
-    smokeTriggered = smokeValue > smokeThres;
-    if (smokeTriggered) {
-      // Start blinking if not already doing it, if blinking already flip if the timer has been reached
-      if (blinkFlag)
-      {
-        if (now - lastBlinkCheck > blinkTime)
-        {
-          blinkStatus = !blinkStatus;
-          blink_smoke(blinkStatus);
-          lastBlinkCheck = now;
-        }
-      }
-      else
-      {
-        blinkFlag = true;
-        blinkStatus = true;
-        blink_smoke(blinkStatus);
-        lastBlinkCheck = now;
-      }
-    }
-    else
-    {
-      blinkFlag = false;
-      blinkStatus = false;
-      blink_smoke(blinkStatus);
-    }
-
-    report_smoke_status(smokeTriggered);
-  }
-}

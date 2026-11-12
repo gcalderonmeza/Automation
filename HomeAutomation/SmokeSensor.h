@@ -6,21 +6,26 @@
 
 class Smoke {
   public:
-    Smoke(uint8_t smokePin, uint8_t smokeLEDPin, uint8_t buzzerPin);
+    Smoke(uint8_t smokePin, uint8_t smokeLEDPin, uint8_t buzzerPin, String topicPrefix);
 
     void setBlinkTimeInMs(uint16_t blinkTimeInMs);
     void setSmokeThreshold(uint8_t smokeThreshold);
 
     void startTestMode();
     void processMessage(PubSubClient& client, String topic, String messageTemp);
-    void reportStatus(PubSubClient *client, boolean smokeTriggered);
+    void reportStatus(PubSubClient& client);
     void blink(boolean blinkStatus);
-    void subscribe(PubSubClient &client);
+    void subscribe(PubSubClient& client);
     void setup();
-    void check(PubSubClient* client);
-    void loop(PubSubClient* client);
+    void loop(PubSubClient& client);
 
   private:
+    void check(PubSubClient& client);
+
+    // Topics
+    String baseTopic;
+    String notificationTopic;
+
     // Smoke Sensor
     uint8_t smokePin;
     uint16_t blinkTime;
@@ -48,4 +53,3 @@ class Smoke {
 };
 
 #endif
-
