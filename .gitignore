@@ -6,3 +6,6 @@ libraries/
 
 # ESP8266 sub-projects
 Projects/
+
+# PlatformIO build artifacts
+.pio/
