@@ -71,9 +71,9 @@ void LightSensor::process(PubSubClient& client)
   // Publish only if the value changed
   if (this->lastLightValue <= 0 || (m - this->lastLightValue) != 0)
   {
-    Serial.print("Raw light read: ");
+    Serial.print(F("Raw light read: "));
     Serial.print(light);
-    Serial.print("  Normalized: ");
+    Serial.print(F("  Normalized: "));
     Serial.println(m);
 
     this->lastLightValue = m;

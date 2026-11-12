@@ -32,7 +32,7 @@ void Motion::processMessage(PubSubClient& client, String topic, String messageTe
 
 void Motion::changeStatus(PubSubClient& client, String messageTemp)
 {
-  Serial.print("MOTION SENSOR STATUS CHANGE...");
+  Serial.print(F("MOTION SENSOR STATUS CHANGE..."));
   if(messageTemp == "1"){
     armMotion = true;
   } else if(messageTemp == "0"){
@@ -47,7 +47,7 @@ void Motion::changeStatus(PubSubClient& client, String messageTemp)
 void Motion::reportStatus(PubSubClient& client)
 {
   const char* statusLabel = armMotion ? "Armed" : "Not Armed";
-  Serial.print("Motion Sensor ");
+  Serial.print(F("Motion Sensor "));
   Serial.println(statusLabel);
   client.publish(statusTopic.c_str(), statusLabel);
   client.publish(notificationTopic.c_str(), motionTriggered ? "MOTION DETECTED" : "NO MOTION");
@@ -94,7 +94,7 @@ void Motion::loop(PubSubClient& client) {
   if (armMotion && motionTriggered) {
     noInterrupts();
     if (motionFirstTimeTriggered) {
-      Serial.println("MOTION DETECTED!!!");
+      Serial.println(F("MOTION DETECTED!!!"));
       lastMotionTriggered = now;
       client.publish(notificationTopic.c_str(), "MOTION DETECTED");
       motionFirstTimeTriggered = false;

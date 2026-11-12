@@ -35,15 +35,15 @@ void SwitchGroup::setup(char** onMessages, char** offMessages, uint8_t numSwitch
 
   this->switchesToToggle = new bool[numSwitches];
 
-  Serial.print("Num switches: ");
+  Serial.print(F("Num switches: "));
   Serial.println(numSwitches);
 
   switchStatus = new bool[numSwitches];
   for(uint8_t i=0;i<numSwitches;i++)
   {
-    Serial.print("On mesage[");
+    Serial.print(F("On mesage["));
     Serial.print(i);
-    Serial.print("] = ");
+    Serial.print(F("] = "));
     Serial.println(this->onMessages[i]);
     switchStatus[i] = false;
   }
@@ -70,17 +70,17 @@ void SwitchGroup::processMessage(PubSubClient& client, String topic, String mess
 
     if(lightsToggled)
     {
-      Serial.print("Switching light to ");
+      Serial.print(F("Switching light to "));
       if(messageTemp == "1"){
-        Serial.println("On");
+        Serial.println(F("On"));
       }
       else if(messageTemp == "0"){
-        Serial.println("Off");
+        Serial.println(F("Off"));
       }
     }
     else
     {
-      Serial.print("No switch toggled");
+      Serial.print(F("No switch toggled"));
     }
   }
 }
@@ -93,9 +93,9 @@ void SwitchGroup::toggleSwitch(uint8_t switchNumber)
 {
   if(switchNumber >= 1 && switchNumber <= numSwitches)
   {
-    Serial.print("Toggling switch #");
+    Serial.print(F("Toggling switch #"));
     Serial.print(switchNumber);
-    Serial.print(" using message ");
+    Serial.print(F(" using message "));
     Serial.println(switchStatus[switchNumber-1] ? offMessages[switchNumber-1] : onMessages[switchNumber-1]); 
     mySwitch.send(switchStatus[switchNumber-1] ? offMessages[switchNumber-1] : onMessages[switchNumber-1]);
     switchStatus[switchNumber-1] = !switchStatus[switchNumber-1];

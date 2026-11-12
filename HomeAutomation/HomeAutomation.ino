@@ -81,7 +81,7 @@ void setup_wifi() {
     Serial.print(F("."));
   }
   
-  Serial.println("");
+  Serial.println(F(""));
   Serial.print(F("WiFi connected - ESP IP address: "));
   Serial.print(WiFi.localIP());
   Serial.print(F(" - Host name: "));
