@@ -85,7 +85,11 @@ void setup_wifi() {
   Serial.print(F("WiFi connected - ESP IP address: "));
   Serial.print(WiFi.localIP());
   Serial.print(F(" - Host name: "));
-  Serial.println(WiFi.hostname());
+  #if defined(ESP8266)
+    Serial.println(WiFi.hostname());
+  #elif defined(ARDUINO_XIAO_ESP32S3)
+    Serial.println(WiFi.getHostname());
+  #endif
 }
 
 // This functions is executed when some device publishes a message to a topic that your ESP8266 is subscribed to
