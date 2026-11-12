@@ -1,11 +1,15 @@
 // Loading the required libraries
 #include "SmokeSensor.h"
 
-Smoke::Smoke(uint8_t smokePin, uint8_t smokeLEDPin, uint8_t buzzerPin)
+Smoke::Smoke(uint8_t smokePin, uint8_t smokeLEDPin, uint8_t buzzerPin, String topicPrefix)
 {
+  // Topics
+  baseTopic = topicPrefix + "/smoke";
+  notificationTopic = baseTopic + "/notification";
+
   // Smoke data input (A/D converter input)
   this->smokePin = smokePin;
-  
+
   // Status LEDs (output)
   this->smokeLEDPin = smokeLEDPin;
 
@@ -48,21 +52,21 @@ void Smoke::startTestMode()
   this->testMode = true;
 }
 
-void Smoke::processMessage(PubSubClient &client, String topic, String messageTemp)
+void Smoke::processMessage(PubSubClient& client, String topic, String messageTemp)
 {
-  if(topic=="home/garage/esp1/smoke"){
+  if (topic == baseTopic) {
     Serial.print(F("SMOKE SENSOR STATUS CHANGE... "));
-    if (messageTemp=="Test/Reset") {
+    if (messageTemp == "Test/Reset") {
       if (smokeTriggered) {
         // Reset
         smokeTriggered = false;
         testMode = false;
         blinkFlag = false;
         blinkStatus = false;
-        client.publish("home/garage/esp1/smoke/notification", "NO SMOKE");
+        client.publish(notificationTopic.c_str(), "NO SMOKE");
         Serial.println(F("NO SMOKE"));
       }
-      else 
+      else
       {
         // Test
         smokeTriggered = false;
@@ -71,33 +75,26 @@ void Smoke::processMessage(PubSubClient &client, String topic, String messageTem
         blinkStatus = true;
         testModeStart = millis();
         lastBlinkCheck = testModeStart;
-        client.publish("home/garage/esp1/smoke/notification", "IN TEST");
+        client.publish(notificationTopic.c_str(), "IN TEST");
         Serial.println(F("IN TEST"));
       }
 
       this->blink(blinkStatus);
     }
-  }  
+  }
 }
 
-void Smoke::reportStatus(PubSubClient *client, boolean smokeTriggered)
+void Smoke::reportStatus(PubSubClient& client)
 {
-  if (!client) 
-  {
-    client->publish("home/garage/esp1/smoke/notification", "NOT AVAILABLE");
-    return;
-  }
-  
   if (smokeTriggered) {
-    client->publish("home/garage/esp1/smoke/notification", "SMOKE DETECTED!!!");
+    client.publish(notificationTopic.c_str(), "SMOKE DETECTED!!!");
     Serial.println(F("SMOKE DETECTED!!!"));
   }
   else
   {
-    // Not in test mode
-    client->publish("home/garage/esp1/smoke/notification", "NO SMOKE");
+    client.publish(notificationTopic.c_str(), "NO SMOKE");
     Serial.println(F("NO SMOKE"));
-  }  
+  }
 }
 
 void Smoke::blink(boolean blinkStatus)
@@ -110,12 +107,12 @@ void Smoke::blink(boolean blinkStatus)
   {
     digitalWrite(smokeLEDPin, LOW);
     noTone(buzzerPin);
-  }  
+  }
 }
 
-void Smoke::subscribe(PubSubClient &client)
+void Smoke::subscribe(PubSubClient& client)
 {
-   client.subscribe("home/garage/esp1/smoke");
+  client.subscribe(baseTopic.c_str());
 }
 
 void Smoke::setup()
@@ -125,11 +122,10 @@ void Smoke::setup()
   pinMode(smokePin, INPUT);
 }
 
-void Smoke::check(PubSubClient* client)
+void Smoke::check(PubSubClient& client)
 {
   long now = millis();
-  
-  // Checks smoke
+
   if (testMode) {
     // Timer reached? (5 sec in test mode)
     if (now - testModeStart > 5000)
@@ -157,7 +153,6 @@ void Smoke::check(PubSubClient* client)
 
     smokeTriggered = smokeValue > smokeThres;
     if (smokeTriggered) {
-      // Start blinking if not already doing it, if blinking already flip if the timer has been reached
       if (blinkFlag)
       {
         if (now - lastBlinkCheck > blinkTime)
@@ -182,13 +177,11 @@ void Smoke::check(PubSubClient* client)
       this->blink(blinkStatus);
     }
 
-    reportStatus(client, smokeTriggered);
-  }  
+    reportStatus(client);
+  }
 }
 
-void Smoke::loop(PubSubClient* client)
+void Smoke::loop(PubSubClient& client)
 {
   check(client);
-  reportStatus(client, false);
 }
-
